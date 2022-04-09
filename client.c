@@ -5,6 +5,7 @@
 #include <string.h>
 #include <signal.h> //used for WUNTRACED or WCONTINED in waitpid call 
 #define MAX_SIZE 1000 //max command size
+#define MAX_ARGS 10
 
 int main(){
     char *command = (char *)malloc(sizeof(char) * MAX_SIZE);
@@ -13,21 +14,18 @@ int main(){
         fgets(command , MAX_SIZE , stdin);
         command[strcspn(command, "\n")] = 0; //removing newline character from the command to make tokenization easier
         if(strcmp(command , "exit")==0){
-            return 0; 
+            exit(1); 
         }
-        int x = fork(); 
-        if(x==0){
-            command_parse_and_execute(); 
-        }else{
-            int status; 
-            int w = waitpid(x, &status, WUNTRACED | WCONTINUED); 
-            /*wait for child process to exit or get killed 
-            WCONTINUED returns status of continued child process
-            WUNTRACED returns status of stopped child process 
-            status variable to hold the status reurned
-            x is pid child process
-            */
+        //parsing command
+        char *token = strtok(command , " ");
+        char *argList[MAX_ARGS];
+        argList[0] = token; 
+        int i = 1; 
+        while(token!=NULL){
+            token = strtok(NULL , " ");
+            argList[i++] = token; //arguments being passed. 
         }
+        int size = i-1;
     }
     return 0;
 }
