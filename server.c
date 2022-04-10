@@ -7,6 +7,8 @@ req_msg_t rx_msg; //global message struct to store command sent by client queue
 
 int MIN_COURSES = 0 , MAX_COURSES = 0; 
 int MIN_TEACHERS = 0, MAX_TEACHERS = 0;
+
+int curr_teachers = 0, curr_courses = 0; 
 int status = OP_ERROR; 
 
 int parse_and_update(char buffer[MAX_LINE_SIZE]){
@@ -34,6 +36,26 @@ int parse_and_update(char buffer[MAX_LINE_SIZE]){
         MAX_TEACHERS = atoi(argList[1]);
         printf("Reading... MAX_TEACHERS : %d\n" , MAX_TEACHERS);
         return PARSE_SUCCESS;
+    }else if(strcmp(argList[0] , "ADD_COURSE")==0){
+        printf("%s\n" , argList[0]);
+        if(curr_courses==MAX_COURSES){
+            return MAX_LIMIT_REACHED;
+        }
+        return PARSE_SUCCESS; 
+    }else if(strcmp(argList[0] , "DEL_COURSE")==0){
+        if(curr_courses<MIN_COURSES){
+            return MIN_LIMIT_NOT_REACHED; 
+        }
+    }else if(strcmp(argList[0] , "ADD_TEACHER")==0){
+        if(curr_teachers==MAX_TEACHERS){
+            return MAX_LIMIT_REACHED; 
+        }
+        return PARSE_SUCCESS; 
+    }else if(strcmp(argList[0] , "DEL_TEACHER")==0){
+        if(curr_teachers<MIN_TEACHERS){
+            return MIN_LIMIT_NOT_REACHED; 
+        }
+        return PARSE_SUCCESS; 
     }
     return PARSE_FAILURE; 
 }
@@ -58,7 +80,10 @@ int main(){
        }
     }
     printf("config.txt read successfully!...\n");
-
+    
+    allotment *alList = (allotment *)malloc(sizeof(allotment) * MAX_COURSES); //allotment list 
+    
+    
     mqd_t qd_rx; 
     mqd_t qd_tx; 
     struct mq_attr attr; 
@@ -89,9 +114,17 @@ int main(){
         printf("Received message type : %s\n" , in_msg.msg_type);
         printf("Received message val  : %s\n" , in_msg.msg_val); 
 
-        status = OP_SUCCESS; 
+        
+
+        int res = parse_and_update(in_msg.msg_val); 
+        if(res==PARSE_SUCCESS){
+            strcpy(res_msg.msg_val,  "SUCCESS");
+        }else{
+            strcpy(res_msg.msg_val , "FAILURE");
+        }
+        status = res; 
         sprintf(res_msg.msg_type , "%d" , status);
-        sprintf(res_msg.msg_val , "%d" , status);
+        
 
         char client_queue_name[1000]; 
         sprintf(client_queue_name , "/CLIENT_%s" , in_msg.msg_type);

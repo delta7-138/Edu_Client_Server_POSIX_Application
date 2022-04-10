@@ -62,7 +62,7 @@ int main(){
             exit (1);
         }
 
-        printf("%s\n" , in_msg.msg_val);
+        printf("%s:%s\n" , in_msg.msg_val , in_msg.msg_type);
     }
     return 0;
 }
