@@ -1,9 +1,4 @@
-#include <stdio.h>
-#include <unistd.h> // used for fork and execvp calls
-#include <sys/wait.h> //for waitpid call
-#include <stdlib.h>
-#include <string.h>
-#include <signal.h> //used for WUNTRACED or WCONTINED in waitpid call 
+#include "server.h"
 #define MAX_SIZE 1000 //max command size
 #define MAX_ARGS 10
 
@@ -16,6 +11,7 @@ int main(){
         if(strcmp(command , "exit")==0){
             exit(1); 
         }
+
         //parsing command
         char *token = strtok(command , " ");
         char *argList[MAX_ARGS];
@@ -25,9 +21,22 @@ int main(){
             token = strtok(NULL , " ");
             argList[i++] = token; //arguments being passed. 
         }
-        int size = i-1;
+        int size = i-1; 
 
-        
+        mqd_t qd_rx; 
+
+        if ((qd_rx = mq_open (RX_QUEUE_NAME, O_WRONLY)) == -1) {
+            perror ("Msq Tx: mq_open (qd_rx)");
+            exit (1);
+        }
+        req_msg_t out_msg;
+        strcpy(out_msg.msg_type, argList[0]);   // strcpy(destPtr, srcPtr)
+	    sprintf(out_msg.msg_val , "%s %s" , argList[0] , argList[1]);
+
+        if (mq_send (qd_rx, (char *) &out_msg, sizeof(out_msg), 0) == -1) {
+            perror ("Unable to send message!");
+            continue;
+        } 
     }
     return 0;
 }
