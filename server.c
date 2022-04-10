@@ -93,7 +93,7 @@ int parse_and_update(char buffer[MAX_LINE_SIZE] , struct TeacherNode *tList){
         int res = deleteTeacherNode(argList[1] , tList , &curr_teachers); 
         return PARSE_SUCCESS; 
     }
-    
+
     return PARSE_FAILURE; 
 }
 
