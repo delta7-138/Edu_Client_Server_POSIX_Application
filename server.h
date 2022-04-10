@@ -11,6 +11,8 @@
 #include <mqueue.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <pthread.h>
+#include <semaphore.h>
 
 #define MAX_LINE_SIZE 100
 #define PARSE_SUCCESS 0

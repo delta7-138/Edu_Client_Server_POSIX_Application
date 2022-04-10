@@ -5,6 +5,7 @@
 
 
 void printList(struct TeacherNode *teacherList , int size){
+    printf("Report\n");
     for(int i = 0; i<size; i++){
         struct TeacherNode tch = teacherList[i]; 
         if(tch.delflag==1){

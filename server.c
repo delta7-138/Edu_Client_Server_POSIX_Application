@@ -7,10 +7,19 @@ req_msg_t rx_msg; //global message struct to store command sent by client queue
 
 int MIN_COURSES = 0 , MAX_COURSES = 0; 
 int MIN_TEACHERS = 0, MAX_TEACHERS = 0;
-
+sem_t bin_sem; 
 
 int curr_teachers = 0, curr_courses = 0; 
 int status = 0; 
+
+void *report_generator(void *msg){
+    sem_wait(&bin_sem); 
+    printList((struct TeacherNode *)msg , curr_teachers); 
+    sem_post(&bin_sem);  
+    sleep(10); 
+    pthread_exit("Thread exit");
+}
+
 
 
 int parse_and_update(char buffer[MAX_LINE_SIZE] , struct TeacherNode *tList){
@@ -104,7 +113,12 @@ int main(){
        }
     }
     printf("config.txt read successfully!...\n");
-    
+    int res_sem = sem_init(&bin_sem , 0 , 1); 
+    if(res_sem!=0){
+        perror("error in creating semaphore"); 
+        exit(0); 
+    }
+
     struct TeacherNode *teacherList = (struct TeacherNode *)malloc(sizeof(struct TeacherNode) * MAX_TEACHERS);
     mqd_t qd_rx; 
     mqd_t qd_tx; 
@@ -121,13 +135,17 @@ int main(){
         exit (1);
     }
     
-    
+    pthread_t report_thread; 
+    void *thread_status; 
 
     req_msg_t in_msg;
     req_msg_t res_msg; 
     
     printf("Listening on message queue...\n");
     while(1){
+        pthread_create(&report_thread , NULL , report_generator , teacherList); 
+        status = pthread_join(report_thread , &thread_status);
+
         if(mq_receive (qd_rx,(char *) &in_msg, MAX_MSG_SIZE, NULL) == -1) {
             perror ("Error in receiving message");
             exit (1);
@@ -137,8 +155,9 @@ int main(){
         printf("Received message val  : %s\n" , in_msg.msg_val); 
 
         
-
+        sem_wait(&bin_sem); 
         int res = parse_and_update(in_msg.msg_val , teacherList); 
+        sem_post(&bin_sem);
         if(res==PARSE_SUCCESS){
             strcpy(res_msg.msg_val,  "SUCCESS");
         }else{
