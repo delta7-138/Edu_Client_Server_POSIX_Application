@@ -7,6 +7,7 @@ req_msg_t rx_msg; //global message struct to store command sent by client queue
 
 int MIN_COURSES = 0 , MAX_COURSES = 0; 
 int MIN_TEACHERS = 0, MAX_TEACHERS = 0;
+int status = OP_ERROR; 
 
 int parse_and_update(char buffer[MAX_LINE_SIZE]){
     char *token = strtok(buffer , " ");
@@ -59,6 +60,7 @@ int main(){
     printf("config.txt read successfully!...\n");
 
     mqd_t qd_rx; 
+    mqd_t qd_tx; 
     struct mq_attr attr; 
 
     attr.mq_flags = 0;
@@ -66,12 +68,17 @@ int main(){
     attr.mq_msgsize = MAX_MSG_SIZE;
     attr.mq_curmsgs = 0;
     
-    if ((qd_rx = mq_open (RX_QUEUE_NAME, O_RDONLY | O_CREAT, QUEUE_PERMISSIONS,
+    if ((qd_rx = mq_open (SERV_QUEUE_NAME, O_RDONLY | O_CREAT, QUEUE_PERMISSIONS,
                            &attr)) == -1) {
         perror ("Error in opening listening queue");
         exit (1);
     }
+    
+    
+
     req_msg_t in_msg;
+    req_msg_t res_msg; 
+    
     printf("Listening on message queue...\n");
     while(1){
         if(mq_receive (qd_rx,(char *) &in_msg, MAX_MSG_SIZE, NULL) == -1) {
@@ -81,6 +88,23 @@ int main(){
 
         printf("Received message type : %s\n" , in_msg.msg_type);
         printf("Received message val  : %s\n" , in_msg.msg_val); 
+
+        status = OP_SUCCESS; 
+        sprintf(res_msg.msg_type , "%d" , status);
+        sprintf(res_msg.msg_val , "%d" , status);
+
+        char client_queue_name[1000]; 
+        sprintf(client_queue_name , "/CLIENT_%s" , in_msg.msg_type);
+        printf("%s\n" , client_queue_name); 
+        if ((qd_tx = mq_open (client_queue_name,  O_WRONLY)) == -1) {
+            perror ("Error in opening sending queue");
+            exit (1);
+        }
+
+        if (mq_send (qd_tx, (char *) &res_msg, sizeof(res_msg), 0) == -1) {
+            perror ("Unable to send message!");
+            continue;
+        } 
     }
     return 0;
 }
