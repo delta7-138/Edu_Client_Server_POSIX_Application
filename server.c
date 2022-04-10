@@ -1,5 +1,5 @@
 #include "server.h"
-
+#include "data_structure.h"
 
 req_msg_t rx_msg; //global message struct to store command sent by client queue
 
@@ -8,10 +8,12 @@ req_msg_t rx_msg; //global message struct to store command sent by client queue
 int MIN_COURSES = 0 , MAX_COURSES = 0; 
 int MIN_TEACHERS = 0, MAX_TEACHERS = 0;
 
-int curr_teachers = 0, curr_courses = 0; 
-int status = OP_ERROR; 
 
-int parse_and_update(char buffer[MAX_LINE_SIZE]){
+int curr_teachers = 0, curr_courses = 0; 
+int status = 0; 
+
+
+int parse_and_update(char buffer[MAX_LINE_SIZE] , struct TeacherNode *tList){
     char *token = strtok(buffer , " ");
     char *argList[2];
     argList[0] = token; 
@@ -41,21 +43,43 @@ int parse_and_update(char buffer[MAX_LINE_SIZE]){
         if(curr_courses==MAX_COURSES){
             return MAX_LIMIT_REACHED;
         }
-        return PARSE_SUCCESS; 
+        if(curr_teachers==0){
+            return NO_TEACHER_ERROR; 
+        }
+
+        int res = addCourseNode(argList[1] , tList , curr_teachers , 0 , 0); 
+        if(res==0){
+            curr_courses++; 
+            return PARSE_SUCCESS;
+        }
+        return PARSE_FAILURE;
     }else if(strcmp(argList[0] , "DEL_COURSE")==0){
         if(curr_courses<MIN_COURSES){
             return MIN_LIMIT_NOT_REACHED; 
         }
+        if(curr_teachers==0){
+            return NO_TEACHER_ERROR; 
+        }
+
+        int res = deleteCourseNode(argList[1] , tList,  curr_teachers); 
+        if(res<0){
+            return DELETE_ERROR; 
+        }
+        curr_courses--; 
+        return PARSE_SUCCESS; 
     }else if(strcmp(argList[0] , "ADD_TEACHER")==0){
         if(curr_teachers==MAX_TEACHERS){
             return MAX_LIMIT_REACHED; 
         }
+        struct TeacherNode node = addTeacherNode(argList[1]); 
+        tList[curr_teachers++] = node; 
         return PARSE_SUCCESS; 
     }else if(strcmp(argList[0] , "DEL_TEACHER")==0){
         if(curr_teachers<MIN_TEACHERS){
             return MIN_LIMIT_NOT_REACHED; 
         }
         return PARSE_SUCCESS; 
+        int res = deleteTeacherNode(argList[1] , tList , &curr_teachers); 
     }
     return PARSE_FAILURE; 
 }
@@ -73,7 +97,7 @@ int main(){
     } 
     char buffer[MAX_LINE_SIZE];
     while(fgets(buffer , MAX_LINE_SIZE , fd)){
-       int res = parse_and_update(buffer); 
+       int res = parse_and_update(buffer , NULL); 
        if(res){
            perror("Parsing error in config.txt!");
            exit(1);
@@ -81,9 +105,7 @@ int main(){
     }
     printf("config.txt read successfully!...\n");
     
-    allotment *alList = (allotment *)malloc(sizeof(allotment) * MAX_COURSES); //allotment list 
-    
-    
+    struct TeacherNode *teacherList = (struct TeacherNode *)malloc(sizeof(struct TeacherNode) * MAX_TEACHERS);
     mqd_t qd_rx; 
     mqd_t qd_tx; 
     struct mq_attr attr; 
@@ -116,7 +138,7 @@ int main(){
 
         
 
-        int res = parse_and_update(in_msg.msg_val); 
+        int res = parse_and_update(in_msg.msg_val , teacherList); 
         if(res==PARSE_SUCCESS){
             strcpy(res_msg.msg_val,  "SUCCESS");
         }else{

@@ -17,26 +17,23 @@
 #define PARSE_FAILURE 1
 #define MAX_LIMIT_REACHED 2
 #define MIN_LIMIT_NOT_REACHED 3
+#define DUPLICATE_ERROR 4
+#define DELETE_ERROR 5
+#define NO_TEACHER_ERROR 6
 
-#define OP_SUCCESS 222
-#define OP_ERROR 444
-
+#define IS_PRESENT 1
+#define IS_NOT_PRESENT 0
 
 #define MSG_TYPE_LEN 16
 #define MSG_VAL_LEN  16
 
-#define TEACHER_NAME 10
-#define COURSE_NAME 10
 
 typedef struct{
 char msg_type[MSG_TYPE_LEN];
 char msg_val[MSG_VAL_LEN];
 } req_msg_t;
 
-typedef struct{
-char teacher[TEACHER_NAME]; 
-char course[COURSE_NAME]; 
-} allotment; 
+
 
 #define SERV_QUEUE_NAME   "/server_queue_222"
 #define QUEUE_PERMISSIONS 0666
