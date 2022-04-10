@@ -25,5 +25,6 @@ int addCourseNode(char val[COURSE_NAME] , struct TeacherNode *teacherList , int 
 struct TeacherNode addTeacherNode(char val[TEACHER_NAME]); 
 int findTeacherNode(char val[TEACHER_NAME] , struct TeacherNode *tList , int size); 
 void printList(struct TeacherNode *teacherList , int size); 
+int isCoursePresent(char val[COURSE_NAME] , struct TeacherNode *tList , int size);
 
 #endif

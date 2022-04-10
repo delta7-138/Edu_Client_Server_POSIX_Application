@@ -11,15 +11,38 @@ void printList(struct TeacherNode *teacherList , int size){
         if(tch.delflag==1){
             continue; 
         }
-        printf("%s\n" , tch.val); 
+        printf("Teacher %s : " , tch.val); 
         
         struct CourseNode *head = tch.head; 
         while(head!=NULL){
-            printf("%s\n" , head->val); 
+            printf("Course %s" , head->val); 
+            if((head->next)!=NULL){
+                printf("-->"); 
+            }
+            head = head->next; 
+        }
+        printf("\n");
+    }
+    printf("\n\n"); 
+}
+
+int isCoursePresent(char val[COURSE_NAME] , struct TeacherNode *tList , int size){
+    for(int i = 0; i<size; i++){
+        struct TeacherNode tmp = tList[i]; 
+        if(tmp.delflag==1){
+            continue; 
+        }
+
+        struct CourseNode *head = tmp.head; 
+        struct CourseNode *prev = NULL; 
+        while(head!=NULL){
+            if(strcmp(head->val , val)==0){
+                return 1; 
+            } 
             head = head->next; 
         }
     }
-    printf("\n\n"); 
+    return 0; 
 }
 
 int findTeacherNode(char val[TEACHER_NAME] , struct TeacherNode *tList , int size){
@@ -44,6 +67,12 @@ struct TeacherNode addTeacherNode(char val[TEACHER_NAME]){
 }
 
 int addCourseNode(char val[COURSE_NAME] , struct TeacherNode *teacherList , int size , int flag , int ignore){
+    if(flag==0){
+        int res = isCoursePresent(val , teacherList , size); 
+        if(res==1){
+            return -1; 
+        }
+    }
     int mincount = 10000 , index = -1;
     //printf("%d" , (teacherList[0]).course_num) ;
     for(int i = 0; i<size; i++){

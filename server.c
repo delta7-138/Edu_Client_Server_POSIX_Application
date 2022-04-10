@@ -13,11 +13,12 @@ int curr_teachers = 0, curr_courses = 0;
 int status = 0; 
 
 void *report_generator(void *msg){
-    sem_wait(&bin_sem); 
-    printList((struct TeacherNode *)msg , curr_teachers); 
-    sem_post(&bin_sem);  
-    sleep(10); 
-    pthread_exit("Thread exit");
+    while(1){
+        sem_wait(&bin_sem); 
+        printList((struct TeacherNode *)msg , curr_teachers); 
+        sem_post(&bin_sem);  
+        sleep(10); 
+    }
 }
 
 
@@ -48,20 +49,18 @@ int parse_and_update(char buffer[MAX_LINE_SIZE] , struct TeacherNode *tList){
         printf("Reading... MAX_TEACHERS : %d\n" , MAX_TEACHERS);
         return PARSE_SUCCESS;
     }else if(strcmp(argList[0] , "ADD_COURSE")==0){
-        printf("%s\n" , argList[0]);
         if(curr_courses==MAX_COURSES){
             return MAX_LIMIT_REACHED;
         }
         if(curr_teachers==0){
             return NO_TEACHER_ERROR; 
         }
-
         int res = addCourseNode(argList[1] , tList , curr_teachers , 0 , 0); 
         if(res==0){
             curr_courses++; 
             return PARSE_SUCCESS;
         }
-        return PARSE_FAILURE;
+        return DUPLICATE_ERROR; 
     }else if(strcmp(argList[0] , "DEL_COURSE")==0){
         if(curr_courses<MIN_COURSES){
             return MIN_LIMIT_NOT_REACHED; 
@@ -80,6 +79,10 @@ int parse_and_update(char buffer[MAX_LINE_SIZE] , struct TeacherNode *tList){
         if(curr_teachers==MAX_TEACHERS){
             return MAX_LIMIT_REACHED; 
         }
+        int index = findTeacherNode(argList[1] , tList,  curr_teachers); 
+        if(index!=-1){
+            return DUPLICATE_ERROR; 
+        }
         struct TeacherNode node = addTeacherNode(argList[1]); 
         tList[curr_teachers++] = node; 
         return PARSE_SUCCESS; 
@@ -87,8 +90,8 @@ int parse_and_update(char buffer[MAX_LINE_SIZE] , struct TeacherNode *tList){
         if(curr_teachers<MIN_TEACHERS){
             return MIN_LIMIT_NOT_REACHED; 
         }
-        return PARSE_SUCCESS; 
         int res = deleteTeacherNode(argList[1] , tList , &curr_teachers); 
+        return PARSE_SUCCESS; 
     }
     return PARSE_FAILURE; 
 }
@@ -142,20 +145,17 @@ int main(){
     req_msg_t res_msg; 
     
     printf("Listening on message queue...\n");
+    pthread_create(&report_thread , NULL , report_generator , teacherList); 
     while(1){
-        pthread_create(&report_thread , NULL , report_generator , teacherList); 
-        status = pthread_join(report_thread , &thread_status);
-
         if(mq_receive (qd_rx,(char *) &in_msg, MAX_MSG_SIZE, NULL) == -1) {
             perror ("Error in receiving message");
             exit (1);
         }
 
-        printf("Received message type : %s\n" , in_msg.msg_type);
-        printf("Received message val  : %s\n" , in_msg.msg_val); 
+        // printf("Received message type : %s\n" , in_msg.msg_type);
+        // printf("Received message val  : %s\n" , in_msg.msg_val); 
 
-        
-        sem_wait(&bin_sem); 
+        sem_wait(&bin_sem);
         int res = parse_and_update(in_msg.msg_val , teacherList); 
         sem_post(&bin_sem);
         if(res==PARSE_SUCCESS){
@@ -169,7 +169,7 @@ int main(){
 
         char client_queue_name[1000]; 
         sprintf(client_queue_name , "/CLIENT_%s" , in_msg.msg_type);
-        printf("%s\n" , client_queue_name); 
+        //printf("%s\n" , client_queue_name); 
         if ((qd_tx = mq_open (client_queue_name,  O_WRONLY)) == -1) {
             perror ("Error in opening sending queue");
             exit (1);
@@ -179,6 +179,7 @@ int main(){
             perror ("Unable to send message!");
             continue;
         } 
+        
     }
     return 0;
 }
